@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace ApiPlatform\Core\JsonApi\Serializer;
 
+use ApiPlatform\Core\Api\IdentifiersExtractorInterface;
 use ApiPlatform\Core\Api\IriConverterInterface;
 use ApiPlatform\Core\Api\OperationType;
 use ApiPlatform\Core\Api\ResourceClassResolverInterface;
@@ -39,12 +40,14 @@ final class ItemNormalizer extends AbstractItemNormalizer
 
     private $componentsCache = [];
     private $resourceMetadataFactory;
+    private $identifiersExtractor;
 
-    public function __construct(PropertyNameCollectionFactoryInterface $propertyNameCollectionFactory, PropertyMetadataFactoryInterface $propertyMetadataFactory, IriConverterInterface $iriConverter, ResourceClassResolverInterface $resourceClassResolver, PropertyAccessorInterface $propertyAccessor = null, NameConverterInterface $nameConverter = null, ResourceMetadataFactoryInterface $resourceMetadataFactory)
+    public function __construct(PropertyNameCollectionFactoryInterface $propertyNameCollectionFactory, PropertyMetadataFactoryInterface $propertyMetadataFactory, IriConverterInterface $iriConverter, ResourceClassResolverInterface $resourceClassResolver, PropertyAccessorInterface $propertyAccessor = null, NameConverterInterface $nameConverter = null, ResourceMetadataFactoryInterface $resourceMetadataFactory, IdentifiersExtractorInterface $identifiersExtractor = null, bool $allowPlainIdentifiers = false)
     {
-        parent::__construct($propertyNameCollectionFactory, $propertyMetadataFactory, $iriConverter, $resourceClassResolver, $propertyAccessor, $nameConverter);
+        parent::__construct($propertyNameCollectionFactory, $propertyMetadataFactory, $iriConverter, $resourceClassResolver, $propertyAccessor, $nameConverter, null, null, $allowPlainIdentifiers);
 
         $this->resourceMetadataFactory = $resourceMetadataFactory;
+        $this->identifiersExtractor = $identifiersExtractor;
     }
 
     /**
@@ -78,9 +81,15 @@ final class ItemNormalizer extends AbstractItemNormalizer
         $objectRelationshipsData = $this->getPopulatedRelations($object, $format, $context, $components['relationships']);
 
         $item = [
-            'id' => $this->iriConverter->getIriFromItem($object),
             'type' => $resourceMetadata->getShortName(),
         ];
+
+        if ($this->allowPlainIdentifiers) {
+            $identifiers = $this->identifiersExtractor->getIdentifiersFromItem($object);
+            $item['id'] = implode(';', $identifiers);
+        } else {
+            $item['id'] = $this->iriConverter->getIriFromItem($object);
+        }
 
         if ($objectAttributesData) {
             $item['attributes'] = $objectAttributesData;
