@@ -198,10 +198,14 @@ final class ItemNormalizer extends AbstractItemNormalizer
                 return $this->serializer->normalize($relatedObject, $format, $context);
             }
         } else {
-            $iri = $this->iriConverter->getIriFromItem($relatedObject);
-
-            if (isset($context['resources'])) {
-                $context['resources'][$iri] = $iri;
+            if ($this->allowPlainIdentifiers) {
+                $identifiers = $this->identifiersExtractor->getIdentifiersFromItem($relatedObject);
+                $iri = implode(';', $identifiers);
+            } else {
+                $iri = $this->iriConverter->getIriFromItem($relatedObject);
+                if (isset($context['resources'])) {
+                    $context['resources'][$iri] = $iri;
+                }
             }
         }
 
